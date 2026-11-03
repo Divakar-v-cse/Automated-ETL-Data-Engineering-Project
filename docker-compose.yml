@@ -1,0 +1,65 @@
+# Divakar Automated ETL Data Engineering Project — single-command stack.
+#
+#   docker compose up --build
+#   -> UI + API on http://localhost:8010
+#
+# The API process itself serves the compiled SPA and reads the warehouse over
+# SQLAlchemy, so one container covers the "one start command" requirement.
+# Port 8010 is used because 8000 is occupied on this host.
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: divakar-etl:1.0.0
+    container_name: divakar-etl-api
+    ports:
+      - "8010:8010"
+    environment:
+      # SQLite warehouse on the mounted volume. Point DATABASE_URL at the
+      # postgres service below to run the same code against PostgreSQL.
+      DATABASE_URL: sqlite:////app/data/db/warehouse.db
+      PYTHONPATH: /app
+      LOG_LEVEL: INFO
+    volumes:
+      - ./data:/app/data
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8010/health', timeout=4).read()"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 25s
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------- PostgreSQL
+  # Opt-in: `docker compose --profile postgres up --build`.
+  # The application is dialect-aware and ships a Postgres branch in
+  # etl/schema.py, but database/schema.sql (the standalone DDL mirror) is not
+  # written yet, so this service starts empty. Enable it only after that file
+  # exists, otherwise the API will find no tables.
+  #
+  # postgres:
+  #   image: postgres:16-alpine
+  #   profiles: ["postgres"]
+  #   environment:
+  #     POSTGRES_USER: etl
+  #     POSTGRES_PASSWORD: etl
+  #     POSTGRES_DB: warehouse
+  #   ports:
+  #     - "5433:5432"
+  #   volumes:
+  #     - pgdata:/var/lib/postgresql/data
+  #     - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U etl -d warehouse"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+
+# volumes:
+#   pgdata:

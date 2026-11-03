@@ -1,0 +1,11 @@
+# Runtime dependencies pinned to the versions actually installed and verified
+# in this environment (see docs/TESTING.md for the probe results).
+fastapi==0.115.14
+uvicorn==0.34.3
+pandas==2.3.3
+numpy==2.5.4
+SQLAlchemy==2.0.55
+psycopg2-binary==2.9.13
+pydantic==2.14.2
+python-dotenv==1.2.4
+httpx==0.28.1
